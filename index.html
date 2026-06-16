@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>ManiPro - Gestão de Salão</title>
+<meta name="theme-color" content="#1a1025">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#1a1025;--dk2:#241535;--dk3:#2e1d42;--dk4:#3d2856;--lilac:#9B59B6;--lilac2:#8E44AD;--lilacLight:#D2B4DE;--txm:#c9b8d9;--txl:#a08bb5;--green:#27AE60;--red:#E74C3C;--blue:#3498DB}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:#fff;min-height:100vh;overflow-x:hidden;-webkit-tap-highlight-color:transparent}
+a{color:var(--lilac);text-decoration:none}
+.btn{background:var(--lilac);color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:14px;font-weight:700;cursor:pointer;width:100%;transition:all .2s;touch-action:manipulation}
+.btn:hover{background:var(--lilac2);transform:scale(1.02)}
+.btn-out{background:transparent;border:1.5px solid var(--lilac);color:var(--lilac)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:8px 16px;font-size:12px;border-radius:8px;width:auto}
+.fg{margin-bottom:14px}
+.fl{display:block;font-size:12px;color:var(--txl);margin-bottom:6px;font-weight:600}
+.fi{width:100%;background:var(--dk3);border:1.5px solid var(--dk4);border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;outline:none;transition:border .2s}
+.fi:focus{border-color:var(--lilac)}
+select.fi{appearance:none}
+.container{max-width:480px;margin:0 auto;min-height:100vh;position:relative}
+.page{display:none;padding-bottom:80px}.page.active{display:block}
+.header{padding:20px 20px 10px;display:flex;align-items:center;justify-content:space-between}
+.header h1{font-size:20px;font-weight:800;color:var(--lilac)}
+.card{background:var(--dk2);border-radius:14px;padding:16px;margin:0 20px 12px}
+.ci{background:var(--dk2);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.ci .cit{font-weight:600;font-size:14px}.ci .cits{font-size:12px;color:var(--txl)}
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--dk2);border-top:1px solid var(--dk4);display:flex;justify-content:space-around;padding:8px 0 env(safe-area-inset-bottom,8px);z-index:100}
+.ni{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 12px;cursor:pointer;opacity:.5;transition:all .2s;border:none;background:none;color:#fff;font-size:10px;font-weight:600}
+.ni.active{opacity:1;color:var(--lilac)}.ni svg{width:22px;height:22px}
+.mov{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.mov.open{opacity:1;pointer-events:all}
+.msh{background:var(--dk2);border-radius:20px 20px 0 0;padding:24px 20px env(safe-area-inset-bottom,24px);width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.mhd{width:40px;height:4px;background:var(--dk4);border-radius:4px;margin:0 auto 16px;cursor:pointer}
+.mt{font-size:18px;font-weight:700;margin-bottom:16px;color:var(--lilac)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px;margin-bottom:16px}
+.stat{background:var(--dk2);border-radius:12px;padding:14px;text-align:center}
+.stat .sv{font-size:22px;font-weight:800;color:var(--lilac)}.stat .sl{font-size:11px;color:var(--txl);margin-top:2px}
+.tog{position:relative;width:44px;height:24px;background:var(--dk4);border-radius:12px;cursor:pointer;transition:background .2s}
+.tog.on{background:var(--lilac)}
+.tog::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform .2s}
+.tog.on::after{transform:translateX(20px)}
+.spin{width:30px;height:30px;border:3px solid var(--dk4);border-top-color:var(--lilac);border-radius:50%;animation:sp .6s linear infinite;margin:20px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.fbtn{background:var(--dk3);border:1px solid var(--dk4);color:var(--txm);border-radius:50px;padding:6px 12px;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s}
+.fbtn.active,.fbtn:hover{background:var(--lilac);color:#fff;border-color:var(--lilac)}
+.ag-item{background:var(--dk2);border-radius:12px;padding:14px;margin:0 20px 10px;cursor:pointer}
+.ag-time{font-size:13px;font-weight:700;color:var(--lilac)}.ag-name{font-size:14px;font-weight:600;margin-top:4px}
+.ag-svc{font-size:12px;color:var(--txl)}
+.badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700}
+.badge-pending{background:rgba(243,156,18,.15);color:#F39C12}
+.badge-confirmed{background:rgba(52,152,219,.15);color:#3498DB}
+.badge-done{background:rgba(39,174,96,.15);color:#27AE60}
+.badge-cancelled{background:rgba(231,76,60,.15);color:#E74C3C}
+</style>
+</head>
+<body>
+<div class="container" id="app-container">
+<div id="login-page" class="page active">
+<div style="padding:60px 30px;text-align:center">
+<div style="font-size:48px;margin-bottom:10px">💅</div>
+<h1 style="font-size:28px;color:var(--lilac);font-weight:800;margin-bottom:4px">ManiPro</h1>
+<p style="color:var(--txl);font-size:13px;margin-bottom:40px">Gestão inteligente para seu salão</p>
+<div class="fg"><label class="fl">E-mail</label><input class="fi" id="login-email" type="email" placeholder="seu@email.com"></div>
+<div class="fg"><label class="fl">Senha</label><input class="fi" id="login-pwd" type="password" placeholder="Sua senha"></div>
+<button class="btn" onclick="doLogin()" style="margin-top:10px">Entrar</button>
+<p id="login-err" style="color:var(--red);font-size:12px;margin-top:12px;display:none"></p>
+<p style="margin-top:24px;font-size:12px;color:var(--txl)">Não tem conta? <a href="javascript:void(0)" onclick="showPage('register-page')">Criar salão</a></p>
+</div></div>
+<div id="register-page" class="page">
+<div style="padding:40px 30px;text-align:center">
+<div style="font-size:36px;margin-bottom:10px">✨</div>
+<h2 style="color:var(--lilac);margin-bottom:20px">Criar Salão</h2>
+<div class="fg"><label class="fl">Nome do Salão</label><input class="fi" id="reg-shop" placeholder="Ex: Beauty Nails"></div>
+<div class="fg"><label class="fl">Seu nome</label><input class="fi" id="reg-name" placeholder="Seu nome completo"></div>
+<div class="fg"><label class="fl">E-mail</label><input class="fi" id="reg-email" type="email" placeholder="seu@email.com"></div>
+<div class="fg"><label class="fl">Senha</label><input class="fi" id="reg-pwd" type="password" placeholder="Min 6 caracteres"></div>
+<button class="btn" onclick="doRegister()" style="margin-top:10px">Criar conta</button>
+<p id="reg-err" style="color:var(--red);font-size:12px;margin-top:12px;display:none"></p>
+<p style="margin-top:20px;font-size:12px;color:var(--txl)">Já tem conta? <a href="javascript:void(0)" onclick="showPage('login-page')">Entrar</a></p>
+</div></div>
+<div id="admin-app" style="display:none">
+<div id="pg-dash" class="page active">
+<div class="header"><div><h1>💅 ManiPro</h1><div class="subtitle" id="td-lbl">Hoje</div></div><button class="btn-sm btn-out" onclick="doLogout()">Sair</button></div>
+<div class="stats"><div class="stat"><div class="sv" id="st-today">0</div><div class="sl">Hoje</div></div><div class="stat"><div class="sv" id="st-rtd">R$0</div><div class="sl">Receita hoje</div></div><div class="stat"><div class="sv" id="st-month">0</div><div class="sl">Este mês</div></div><div class="stat"><div class="sv" id="st-rm">R$0</div><div class="sl">Receita mês</div></div></div>
+<div id="dash-list"></div>
+</div>
+<div id="pg-agenda" class="page">
+<div class="header"><h1>Agenda</h1><button class="btn-sm" onclick="openNewAppt()">+ Novo</button></div>
+<div style="padding:0 20px 10px;display:flex;align-items:center;gap:10px"><input type="date" class="fi" id="ag-date" onchange="loadAgenda()" style="flex:1"><button class="btn-sm btn-out" onclick="agToday()">Hoje</button></div>
+<div id="agenda-list"></div>
+</div>
+<div id="pg-svcs" class="page">
+<div class="header"><h1>Serviços</h1><button class="btn-sm" onclick="openAddService()">+ Novo</button></div>
+<div id="svc-list" style="padding:0 20px"></div>
+</div>
+<div id="pg-barbs" class="page">
+<div class="header"><h1>Profissionais</h1><button class="btn-sm" onclick="addBarber()">+ Nova</button></div>
+<div id="barb-cfg" style="padding:0 20px"></div>
+</div>
+<div id="pg-packs" class="page">
+<div class="header"><h1>Pacotes</h1><button class="btn-sm" onclick="openAddPackage()">+ Novo</button></div>
+<div id="pack-list" style="padding:0 20px"></div>
+</div>
+<div id="pg-promos" class="page">
+<div class="header"><h1>Promoções</h1><button class="btn-sm" onclick="openAddPromo()">+ Nova</button></div>
+<div id="promo-list" style="padding:0 20px"></div>
+</div>
+<div id="pg-cfg" class="page">
+<div class="header"><h1>Configurações</h1></div>
+<div id="cfg-content" style="padding:0 20px"></div>
+</div>
+<nav class="nav">
+<button class="ni active" onclick="navTo('dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg>Início</button>
+<button class="ni" onclick="navTo('agenda')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda</button>
+<button class="ni" onclick="navTo('svcs')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>Serviços</button>
+<button class="ni" onclick="navTo('barbs')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>Equipe</button>
+<button class="ni" onclick="navTo('cfg')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.08-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.68 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68 1.65 1.65 0 0010.08 3V3a2 2 0 014 0v.09a1.65 1.65 0 001.08 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1.08H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1.08z"/></svg>Config</button>
+</nav>
+</div>
+</div>
+<script>
+// === CONFIG ===
+const SUPABASE_URL="https://zheqdrblwlhvzxrdaifo.supabase.co";
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpoZXFkcmJsd2xodnp4cmRhaWZvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1OTI0MTgsImV4cCI6MjA5NzE2ODQxOH0.5giracRbhgsf2CWa_Zd-ZpQWO2z_6H_bHXdpYRrXVHs";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const S={shopId:null,role:"owner",barberUserId:null};
+
+// === UTILS ===
+function fmt(v){return "R$"+Number(v||0).toFixed(2).replace(".",",")}
+function showPage(id){document.querySelectorAll(".page").forEach(function(p){p.classList.remove("active")});var el=document.getElementById(id);if(el)el.classList.add("active")}
+function openMod(id){var m=document.getElementById(id);if(m)m.classList.add("open")}
+function closeMod(id){var m=document.getElementById(id);if(m)m.classList.remove("open")}
+function toast(msg){var t=document.createElement("div");t.style.cssText="position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--lilac);color:#fff;padding:12px 24px;border-radius:10px;font-size:13px;font-weight:600;z-index:999";t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove()},2500)}
+
+// === NAVIGATION ===
+function navTo(pg){
+  document.querySelectorAll("#admin-app .page").forEach(function(p){p.classList.remove("active")});
+  var el=document.getElementById("pg-"+pg);if(el)el.classList.add("active");
+  document.querySelectorAll(".ni").forEach(function(n){n.classList.remove("active")});
+  if(event&&event.currentTarget)event.currentTarget.classList.add("active");
+  if(pg==="dash")loadDash();
+  else if(pg==="agenda")loadAgenda();
+  else if(pg==="svcs")loadServices();
+  else if(pg==="barbs")loadBarbers();
+  else if(pg==="packs")loadPackages();
+  else if(pg==="promos")loadPromos();
+  else if(pg==="cfg")loadConfig();
+}
+
+function enterApp(){
+  document.getElementById("login-page").classList.remove("active");
+  document.getElementById("register-page").classList.remove("active");
+  document.getElementById("admin-app").style.display="block";
+  loadDash();
+}
+
+// === AUTH ===
+async function doLogin(){
+  var email=document.getElementById("login-email").value.trim();
+  var pwd=document.getElementById("login-pwd").value;
+  var errEl=document.getElementById("login-err");
+  errEl.style.display="none";
+  if(!email||!pwd){errEl.textContent="Preencha todos os campos";errEl.style.display="block";return}
+  var r=await db.auth.signInWithPassword({email:email,password:pwd});
+  if(r.error){errEl.textContent=r.error.message;errEl.style.display="block";return}
+  await loadShop(r.data.user.id);
+}
+
+async function doRegister(){
+  var shop=document.getElementById("reg-shop").value.trim();
+  var name=document.getElementById("reg-name").value.trim();
+  var email=document.getElementById("reg-email").value.trim();
+  var pwd=document.getElementById("reg-pwd").value;
+  var errEl=document.getElementById("reg-err");
+  errEl.style.display="none";
+  if(!shop||!email||!pwd){errEl.textContent="Preencha os campos obrigat\u00f3rios";errEl.style.display="block";return}
+  if(pwd.length<6){errEl.textContent="Senha min 6 caracteres";errEl.style.display="block";return}
+  var r=await db.auth.signUp({email:email,password:pwd,options:{data:{full_name:name}}});
+  if(r.error){errEl.textContent=r.error.message;errEl.style.display="block";return}
+  var uid=r.data.user.id;
+  var slug=shop.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  var sr=await db.from("shops").insert({owner_id:uid,name:shop,slug:slug}).select().single();
+  if(sr.error){errEl.textContent="Erro: "+sr.error.message;errEl.style.display="block";return}
+  S.shopId=sr.data.id;enterApp();toast("Sal\u00e3o criado!");
+}
+
+async function loadShop(uid){
+  var r=await db.from("shops").select("*").eq("owner_id",uid).maybeSingle();
+  if(r.data){S.shopId=r.data.id;S.role="owner";enterApp();return}
+  var br=await db.from("barber_users").select("barber_id,shop_id").eq("user_id",uid).maybeSingle();
+  if(br&&br.data){S.shopId=br.data.shop_id;S.barberUserId=br.data.barber_id;S.role="barber";enterApp();return}
+  document.getElementById("login-err").textContent="Nenhum sal\u00e3o encontrado";document.getElementById("login-err").style.display="block";
+}
+
+async function doLogout(){await db.auth.signOut();location.reload()}
+
+(async function(){var s=await db.auth.getSession();if(s.data.session)await loadShop(s.data.session.user.id)})();
+
+// === DASHBOARD ===
+async function loadDash(){
+  var td=new Date().toISOString().split("T")[0];
+  document.getElementById("td-lbl").textContent="Hoje "+new Date().toLocaleDateString("pt-BR",{day:"2-digit",month:"short"});
+  try{
+    var r1=await db.from("appointments").select("*").eq("appointment_date",td).eq("shop_id",S.shopId).neq("status","cancelled").order("appointment_time");
+    var ta=r1.data||[];
+    var ms=td.slice(0,7)+"-01";
+    var r2=await db.from("appointments").select("service_price,status").gte("appointment_date",ms).eq("shop_id",S.shopId).neq("status","cancelled");
+    var ma=r2.data||[];
+    document.getElementById("st-today").textContent=ta.length;
+    var rtd=ta.filter(function(a){return a.status==="done"||a.status==="finished"}).reduce(function(s,a){return s+Number(a.service_price||0)},0);
+    document.getElementById("st-rtd").textContent=fmt(rtd);
+    document.getElementById("st-month").textContent=ma.length;
+    var rm=ma.filter(function(a){return a.status==="done"||a.status==="finished"}).reduce(function(s,a){return s+Number(a.service_price||0)},0);
+    document.getElementById("st-rm").textContent=fmt(rm);
+    var dl=document.getElementById("dash-list");
+    if(ta.length>0){dl.innerHTML=ta.map(function(a){return agItemHTML(a)}).join("")}
+    else{dl.innerHTML='<div style="text-align:center;padding:30px;color:var(--txl)">Nenhum agendamento hoje</div>'}
+  }catch(e){console.error(e)}
+}
+
+function agItemHTML(a){
+  var st=a.status||"pending";
+  var badges={pending:"Pendente",confirmed:"Confirmado",done:"Conclu\u00eddo",finished:"Encerrado",cancelled:"Cancelado"};
+  var cls={pending:"badge-pending",confirmed:"badge-confirmed",done:"badge-done",finished:"badge-done",cancelled:"badge-cancelled"};
+  return '<div class="ag-item" onclick="openApptDetail('+Q+a.id+Q+')"><div style="display:flex;justify-content:space-between;align-items:center"><div class="ag-time">'+(a.appointment_time||"--:--").slice(0,5)+'</div><span class="badge '+(cls[st]||"badge-pending")+'">'+(badges[st]||st)+'</span></div><div class="ag-name">'+(a.client_name||"Cliente")+'</div><div class="ag-svc">'+(a.service_name||"Servi\u00e7o")+" \u2022 "+(a.barber_name||"Profissional")+" \u2022 "+fmt(a.service_price)+'</div></div>';
+}
+
+// === AGENDA ===
+function agToday(){document.getElementById("ag-date").value=new Date().toISOString().split("T")[0];loadAgenda()}
+async function loadAgenda(){
+  var dt=document.getElementById("ag-date").value;
+  if(!dt){dt=new Date().toISOString().split("T")[0];document.getElementById("ag-date").value=dt}
+  var r=await db.from("appointments").select("*").eq("appointment_date",dt).eq("shop_id",S.shopId).order("appointment_time");
+  var list=r.data||[];
+  var el=document.getElementById("agenda-list");
+  if(list.length>0){el.innerHTML=list.map(function(a){return agItemHTML(a)}).join("")}
+  else{el.innerHTML='<div style="text-align:center;padding:40px;color:var(--txl)">Nenhum agendamento nesta data</div>'}
+}
+
+async function openNewAppt(){
+  if(!document.getElementById("mod-appt"))await injectApptModal();
+  document.getElementById("appt-edit-id").value="";
+  document.getElementById("appt-client").value="";
+  document.getElementById("appt-phone").value="";
+  document.getElementById("appt-date").value=document.getElementById("ag-date").value||new Date().toISOString().split("T")[0];
+  document.getElementById("appt-time").value="";
+  document.getElementById("mod-appt-title").textContent="Novo Agendamento";
+  openMod("mod-appt");
+}
+
+async function injectApptModal(){
+  var svcs=await db.from("services").select("id,name,price,duration").eq("shop_id",S.shopId).eq("active",true).order("name");
+  var barbs=await db.from("barbers").select("id,name").eq("shop_id",S.shopId).eq("active",true).order("name");
+  var svcOpts=(svcs.data||[]).map(function(s){return '<option value="'+s.id+'" data-price="'+s.price+'" data-dur="'+s.duration+'">'+s.name+" - "+fmt(s.price)+'</option>'}).join("");
+  var brbOpts=(barbs.data||[]).map(function(b){return '<option value="'+b.id+'">'+b.name+'</option>'}).join("");
+  var d=document.createElement("div");d.className="mov";d.id="mod-appt";
+  d.innerHTML='<div class="msh"><div class="mhd" onclick="closeMod('+Q+'mod-appt'+Q+')"></div><div class="mt" id="mod-appt-title">Novo Agendamento</div><div class="fg"><label class="fl">Cliente *</label><input class="fi" id="appt-client" placeholder="Nome da cliente"></div><div class="fg"><label class="fl">WhatsApp</label><input class="fi" id="appt-phone" placeholder="11999999999"></div><div class="fg"><label class="fl">Servi\u00e7o *</label><select class="fi" id="appt-svc"><option value="">Selecione</option>'+svcOpts+'</select></div><div class="fg"><label class="fl">Profissional *</label><select class="fi" id="appt-barber"><option value="">Selecione</option>'+brbOpts+'</select></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="fg"><label class="fl">Data *</label><input type="date" class="fi" id="appt-date"></div><div class="fg"><label class="fl">Hor\u00e1rio *</label><input type="time" class="fi" id="appt-time"></div></div><input type="hidden" id="appt-edit-id"><button class="btn" onclick="saveAppt()">Salvar</button></div>';
+  d.onclick=function(e){if(e.target===d)closeMod("mod-appt")};
+  document.body.appendChild(d);
+}
+
+async function saveAppt(){
+  var client=document.getElementById("appt-client").value.trim();
+  var phone=document.getElementById("appt-phone").value.trim();
+  var svcEl=document.getElementById("appt-svc");
+  var svcId=svcEl.value;
+  var barberId=document.getElementById("appt-barber").value;
+  var dt=document.getElementById("appt-date").value;
+  var tm=document.getElementById("appt-time").value;
+  if(!client||!svcId||!barberId||!dt||!tm){toast("Preencha todos os campos");return}
+  var opt=svcEl.options[svcEl.selectedIndex];
+  var svcName=opt.textContent.split(" - ")[0];
+  var price=Number(opt.getAttribute("data-price"))||0;
+  var dur=Number(opt.getAttribute("data-dur"))||30;
+  var barberName=document.getElementById("appt-barber").options[document.getElementById("appt-barber").selectedIndex].textContent;
+  var editId=document.getElementById("appt-edit-id").value;
+  var obj={shop_id:S.shopId,client_name:client,client_phone:phone,service_id:svcId,service_name:svcName,service_price:price,duration:dur,barber_id:barberId,barber_name:barberName,appointment_date:dt,appointment_time:tm,status:"pending"};
+  if(editId){await db.from("appointments").update(obj).eq("id",editId)}
+  else{await db.from("appointments").insert(obj)}
+  closeMod("mod-appt");toast(editId?"Atualizado!":"Agendamento criado!");loadAgenda();loadDash();
+}
+
+async function openApptDetail(id){
+  var r=await db.from("appointments").select("*").eq("id",id).single();
+  if(!r.data)return;var a=r.data;
+  if(!document.getElementById("mod-appt-detail")){
+    var d=document.createElement("div");d.className="mov";d.id="mod-appt-detail";
+    d.innerHTML='<div class="msh"><div class="mhd" onclick="closeMod('+Q+'mod-appt-detail'+Q+')"></div><div id="appt-detail-content"></div></div>';
+    d.onclick=function(e){if(e.target===d)closeMod("mod-appt-detail")};
+    document.body.appendChild(d);
+  }
+  var statusBtns="";
+  if(a.status==="pending")statusBtns='<button class="btn" onclick="updateApptStatus('+Q+id+Q+','+Q+'confirmed'+Q+')">Confirmar</button><button class="btn btn-danger" style="margin-top:8px" onclick="updateApptStatus('+Q+id+Q+','+Q+'cancelled'+Q+')">Cancelar</button>';
+  else if(a.status==="confirmed")statusBtns='<button class="btn" onclick="updateApptStatus('+Q+id+Q+','+Q+'done'+Q+')" style="background:var(--green)">Concluir</button><button class="btn btn-danger" style="margin-top:8px" onclick="updateApptStatus('+Q+id+Q+','+Q+'cancelled'+Q+')">Cancelar</button>';
+  else if(a.status==="done")statusBtns='<button class="btn" onclick="updateApptStatus('+Q+id+Q+','+Q+'finished'+Q+')" style="background:var(--green)">Encerrar</button>';
+  var html='<div class="mt">'+(a.client_name||"Cliente")+'</div><div style="background:var(--dk3);border-radius:10px;padding:14px;margin-bottom:14px"><div style="font-size:13px;color:var(--txl);margin-bottom:6px"><b>Servi\u00e7o:</b> '+(a.service_name||"")+'</div><div style="font-size:13px;color:var(--txl);margin-bottom:6px"><b>Profissional:</b> '+(a.barber_name||"")+'</div><div style="font-size:13px;color:var(--txl);margin-bottom:6px"><b>Data:</b> '+a.appointment_date+' \u00e0s '+(a.appointment_time||"").slice(0,5)+'</div><div style="font-size:13px;color:var(--txl)"><b>Valor:</b> '+fmt(a.service_price)+'</div></div>'+statusBtns;
+  if(a.client_phone){html+='<a href="https://wa.me/55'+a.client_phone.replace(/\D/g,"")+'" target="_blank" class="btn btn-out" style="display:block;text-align:center;margin-top:10px">WhatsApp</a>'}
+  document.getElementById("appt-detail-content").innerHTML=html;
+  openMod("mod-appt-detail");
+}
+
+async function updateApptStatus(id,status){
+  await db.from("appointments").update({status:status}).eq("id",id);
+  closeMod("mod-appt-detail");toast("Status atualizado!");loadAgenda();loadDash();
+}
+
+// === SERVICES ===
+async function loadServices(){
+  var r=await db.from("services").select("*").eq("shop_id",S.shopId).order("name");
+  var list=r.data||[];var el=document.getElementById("svc-list");
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--txl)">Nenhum servi\u00e7o cadastrado</div>';return}
+  el.innerHTML=list.map(function(s){return '<div class="ci"><div style="flex:1"><div class="cit">'+s.name+'</div><div class="cits">'+fmt(s.price)+' \u2022 '+s.duration+'min'+(s.category?' \u2022 '+s.category:'')+'</div></div><button class="btn-sm btn-out" onclick="editService('+Q+s.id+Q+')">Editar</button><div class="tog'+(s.active?" on":"")+'" onclick="toggleService('+Q+s.id+Q+','+(!s.active)+')"></div></div>'}).join("");
+}
+
+function openAddService(){
+  if(!document.getElementById("mod-svc"))injectSvcModal();
+  document.getElementById("svc-name").value="";
+  document.getElementById("svc-price").value="";
+  document.getElementById("svc-dur").value="30";
+  document.getElementById("svc-cat").value="";
+  document.getElementById("svc-edit-id").value="";
+  document.getElementById("mod-svc-title").textContent="Novo Servi\u00e7o";
+  document.getElementById("svc-del-btn").style.display="none";
+  openMod("mod-svc");
+}
+
+function injectSvcModal(){
+  var cats=["Manicure","Pedicure","Nail Art","Spa dos P\u00e9s","Unhas em Gel","Unhas Acr\u00edlicas","Esmalta\u00e7\u00e3o","Blindagem","Banho de Gel","Cutilagem","Alongamento","Outros"];
+  var catOpts=cats.map(function(c){return '<option value="'+c+'">'+c+'</option>'}).join("");
+  var d=document.createElement("div");d.className="mov";d.id="mod-svc";
+  d.innerHTML='<div class="msh"><div class="mhd" onclick="closeMod('+Q+'mod-svc'+Q+')"></div><div class="mt" id="mod-svc-title">Novo Servi\u00e7o</div><div class="fg"><label class="fl">Nome *</label><input class="fi" id="svc-name" placeholder="Ex: Manicure Completa"></div><div class="fg"><label class="fl">Pre\u00e7o (R$) *</label><input class="fi" id="svc-price" type="number" step="0.01" placeholder="50.00"></div><div class="fg"><label class="fl">Dura\u00e7\u00e3o (min)</label><input class="fi" id="svc-dur" type="number" value="30"></div><div class="fg"><label class="fl">Categoria</label><select class="fi" id="svc-cat"><option value="">Selecione</option>'+catOpts+'</select></div><input type="hidden" id="svc-edit-id"><button class="btn" onclick="saveService()">Salvar</button><button class="btn btn-danger" id="svc-del-btn" style="margin-top:8px;display:none" onclick="deleteService()">Excluir</button></div>';
+  d.onclick=function(e){if(e.target===d)closeMod("mod-svc")};
+  document.body.appendChild(d);
+}
+
+async function editService(id){
+  if(!document.getElementById("mod-svc"))injectSvcModal();
+  var r=await db.from("services").select("*").eq("id",id).single();if(!r.data)return;var s=r.data;
+  document.getElementById("svc-name").value=s.name||"";
+  document.getElementById("svc-price").value=s.price||"";
+  document.getElementById("svc-dur").value=s.duration||30;
+  document.getElementById("svc-cat").value=s.category||"";
+  document.getElementById("svc-edit-id").value=s.id;
+  document.getElementById("mod-svc-title").textContent="Editar Servi\u00e7o";
+  document.getElementById("svc-del-btn").style.display="block";
+  openMod("mod-svc");
+}
+
+async function saveService(){
+  var name=document.getElementById("svc-name").value.trim();
+  var price=parseFloat(document.getElementById("svc-price").value);
+  var dur=parseInt(document.getElementById("svc-dur").value)||30;
+  var cat=document.getElementById("svc-cat").value;
+  if(!name||!price){toast("Nome e pre\u00e7o obrigat\u00f3rios");return}
+  var editId=document.getElementById("svc-edit-id").value;
+  var obj={shop_id:S.shopId,name:name,price:price,duration:dur,category:cat,active:true};
+  if(editId){await db.from("services").update(obj).eq("id",editId)}
+  else{await db.from("services").insert(obj)}
+  closeMod("mod-svc");toast(editId?"Atualizado!":"Servi\u00e7o criado!");loadServices();
+}
+
+async function deleteService(){
+  var id=document.getElementById("svc-edit-id").value;if(!id)return;
+  if(!confirm("Excluir este servi\u00e7o?"))return;
+  await db.from("services").delete().eq("id",id);
+  closeMod("mod-svc");toast("Exclu\u00eddo!");loadServices();
+}
+
+async function toggleService(id,val){
+  await db.from("services").update({active:val}).eq("id",id);loadServices();
+}
+
+// === PROFESSIONALS ===
+async function loadBarbers(){
+  var r=await db.from("barbers").select("*").eq("shop_id",S.shopId).order("name");
+  var list=r.data||[];var el=document.getElementById("barb-cfg");
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--txl)">Nenhuma profissional cadastrada</div>';return}
+  el.innerHTML=list.map(function(b){return '<div class="ci"><div style="flex:1"><div class="cit">'+b.name+'</div><div class="cits">'+(b.specialty||"")+(b.commission_pct?' \u2022 Comiss\u00e3o: '+b.commission_pct+'%':'')+'</div></div><button class="btn-sm btn-out" onclick="editBarberById('+Q+b.id+Q+')">Editar</button><div class="tog'+(b.active?" on":"")+'" onclick="toggleBarber('+Q+b.id+Q+','+(!b.active)+')"></div></div>'}).join("");
+}
+
+function addBarber(){
+  if(!document.getElementById("mod-barber"))injectBarberModal();
+  document.getElementById("brb-name").value="";
+  document.getElementById("brb-spec").value="";
+  document.getElementById("brb-comm").value="0";
+  document.getElementById("brb-comm-val").textContent="0";
+  document.getElementById("brb-edit-id").value="";
+  document.getElementById("mod-barber-title").textContent="Adicionar Profissional";
+  openMod("mod-barber");
+}
+
+async function editBarberById(id){
+  var r=await db.from("barbers").select("*").eq("id",id).single();if(!r.data)return;var b=r.data;
+  if(!document.getElementById("mod-barber"))injectBarberModal();
+  document.getElementById("brb-name").value=b.name||"";
+  document.getElementById("brb-spec").value=b.specialty||"";
+  document.getElementById("brb-comm").value=b.commission_pct||0;
+  document.getElementById("brb-comm-val").textContent=b.commission_pct||0;
+  document.getElementById("brb-edit-id").value=b.id;
+  document.getElementById("mod-barber-title").textContent="Editar Profissional";
+  openMod("mod-barber");
+}
+
+function injectBarberModal(){
+  var d=document.createElement("div");d.className="mov";d.id="mod-barber";
+  d.innerHTML='<div class="msh"><div class="mhd" onclick="closeMod('+Q+'mod-barber'+Q+')"></div><div class="mt" id="mod-barber-title">Adicionar Profissional</div><div class="fg"><label class="fl">Nome *</label><input class="fi" id="brb-name" placeholder="Nome"></div><div class="fg"><label class="fl">Especialidade</label><input class="fi" id="brb-spec" placeholder="Ex: Nail Designer"></div><div class="fg"><label class="fl">Comiss\u00e3o: <span id="brb-comm-val">0</span>%</label><input type="range" id="brb-comm" min="0" max="100" value="0" step="5" oninput="document.getElementById('+Q+'brb-comm-val'+Q+').textContent=this.value" style="width:100%;accent-color:var(--lilac)"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--txl)"><span>0%</span><span>50%</span><span>100%</span></div></div><input type="hidden" id="brb-edit-id"><button class="btn" onclick="saveBarber()">Salvar</button></div>';
+  d.onclick=function(e){if(e.target===d)closeMod("mod-barber")};
+  document.body.appendChild(d);
+}
+
+async function saveBarber(){
+  var name=document.getElementById("brb-name").value.trim();
+  var spec=document.getElementById("brb-spec").value.trim();
+  var comm=parseInt(document.getElementById("brb-comm").value)||0;
+  if(!name){toast("Nome obrigat\u00f3rio");return}
+  var editId=document.getElementById("brb-edit-id").value;
+  var obj={shop_id:S.shopId,name:name,specialty:spec,commission_pct:comm,active:true};
+  if(editId){await db.from("barbers").update(obj).eq("id",editId)}
+  else{await db.from("barbers").insert(obj)}
+  closeMod("mod-barber");toast(editId?"Atualizada!":"Profissional adicionada!");loadBarbers();
+}
+
+async function toggleBarber(id,val){
+  await db.from("barbers").update({active:val}).eq("id",id);loadBarbers();
+}
+
+// === PACKAGES ===
+async function loadPackages(){
+  var r=await db.from("packages").select("*").eq("shop_id",S.shopId).order("name");
+  var list=r.data||[];var el=document.getElementById("pack-list");
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--txl)">Nenhum pacote cadastrado</div>';return}
+  el.innerHTML=list.map(function(p){return '<div class="ci"><div style="flex:1"><div class="cit">'+p.name+'</div><div class="cits">'+fmt(p.price)+' \u2022 '+(p.sessions||1)+' sess\u00f5es'+(p.description?' \u2022 '+p.description:'')+'</div></div><button class="btn-sm btn-out" onclick="editPackage('+Q+p.id+Q+')">Editar</button></div>'}).join("");
+}
+
+function openAddPackage(){
+  if(!document.getElementById("mod-pack"))injectPackModal();
+  document.getElementById("pack-name").value="";
+  document.getElementById("pack-price").value="";
+  document.getElementById("pack-sessions").value="1";
+  document.getElementById("pack-desc").value="";
+  document.getElementById("pack-edit-id").value="";
+  document.getElementById("mod-pack-title").textContent="Novo Pacote";
+  document.getElementById("pack-del-btn").style.display="none";
+  openMod("mod-pack");
+}
+
+function injectPackModal(){
+  var d=document.createElement("div");d.className="mov";d.id="mod-pack";
+  d.innerHTML='<div class="msh"><div class="mhd" onclick="closeMod('+Q+'mod-pack'+Q+')"></div><div class="mt" id="mod-pack-title">Novo Pacote</div><div class="fg"><label class="fl">Nome *</label><input class="fi" id="pack-name" placeholder="Ex: Pacote Noiva"></div><div class="fg"><label class="fl">Pre\u00e7o (R$) *</label><input class="fi" id="pack-price" type="number" step="0.01"></div><div class="fg"><label class="fl">Sess\u00f5es</label><input class="fi" id="pack-sessions" type="number" value="1"></div><div class="fg"><label class="fl">Descri\u00e7\u00e3o</label><input class="fi" id="pack-desc" placeholder="Detalhes do pacote"></div><input type="hidden" id="pack-edit-id"><button class="btn" onclick="savePackage()">Salvar</button><button class="btn btn-danger" id="pack-del-btn" style="margin-top:8px;display:none" onclick="deletePackage()">Excluir</button></div>';
+  d.onclick=function(e){if(e.target===d)closeMod("mod-pack")};
+  document.body.appendChild(d);
+}
+
+async function editPackage(id){
+  if(!document.getElementById("mod-pack"))injectPackModal();
+  var r=await db.from("packages").select("*").eq("id",id).single();if(!r.data)return;var p=r.data;
+  document.getElementById("pack-name").value=p.name||"";
+  document.getElementById("pack-price").value=p.price||"";
+  document.getElementById("pack-sessions").value=p.sessions||1;
+  document.getElementById("pack-desc").value=p.description||"";
+  document.getElementById("pack-edit-id").value=p.id;
+  document.getElementById("mod-pack-title").textContent="Editar Pacote";
+  document.getElementById("pack-del-btn").style.display="block";
+  openMod("mod-pack");
+}
+
+async function savePackage(){
+  var name=document.getElementById("pack-name").value.trim();
+  var price=parseFloat(document.getElementById("pack-price").value);
+  var sessions=parseInt(document.getElementById("pack-sessions").value)||1;
+  var desc=document.getElementById("pack-desc").value.trim();
+  if(!name||!price){toast("Nome e pre\u00e7o obrigat\u00f3rios");return}
+  var editId=document.getElementById("pack-edit-id").value;
+  var obj={shop_id:S.shopId,name:name,price:price,sessions:sessions,description:desc};
+  if(editId){await db.from("packages").update(obj).eq("id",editId)}
+  else{await db.from("packages").insert(obj)}
+  closeMod("mod-pack");toast(editId?"Pacote atualizado!":"Pacote criado!");loadPackages();
+}
+
+async function deletePackage(){
+  var id=document.getElementById("pack-edit-id").value;if(!id)return;
+  if(!confirm("Excluir?"))return;
+  await db.from("packages").delete().eq("id",id);closeMod("mod-pack");toast("Exclu\u00eddo!");loadPackages();
+}
+
+// === PROMOTIONS ===
+async function loadPromos(){
+  var r=await db.from("promotions").select("*").eq("shop_id",S.shopId).order("created_at",{ascending:false});
+  var list=r.data||[];var el=document.getElementById("promo-list");
+  if(!list.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--txl)">Nenhuma promo\u00e7\u00e3o</div>';return}
+  el.innerHTML=list.map(function(p){return '<div class="ci"><div style="flex:1"><div class="cit">'+p.title+'</div><div class="cits">'+(p.discount_pct?p.discount_pct+'% OFF':'')+(p.active?' \u2705 Ativa':' \u274c Inativa')+'</div></div><button class="btn-sm btn-out" onclick="editPromo('+Q+p.id+Q+')">Editar</button></div>'}).join("");
+}
+
+function openAddPromo(){
+  if(!document.getElementById("mod-promo"))injectPromoModal();
+  document.getElementById("promo-title").value="";
+  document.getElementById("promo-desc").value="";
+  document.getElementById("promo-discount").value="";
+  document.getElementById("promo-edit-id").value="";
+  document.getElementById("mod-promo-title").textContent="Nova Promo\u00e7\u00e3o";
+  document.getElementById("promo-del-btn").style.display="none";
+  openMod("mod-promo");
+}
+
+function injectPromoModal(){
+  var d=document.createElement("div");d.className="mov";d.id="mod-promo";
+  d.innerHTML='<div class="msh"><div class="mhd" onclick="closeMod('+Q+'mod-promo'+Q+')"></div><div class="mt" id="mod-promo-title">Nova Promo\u00e7\u00e3o</div><div class="fg"><label class="fl">T\u00edtulo *</label><input class="fi" id="promo-title" placeholder="Ex: Ter\u00e7a do Esmalte"></div><div class="fg"><label class="fl">Descri\u00e7\u00e3o</label><input class="fi" id="promo-desc" placeholder="Detalhes"></div><div class="fg"><label class="fl">Desconto (%)</label><input class="fi" id="promo-discount" type="number" placeholder="10"></div><input type="hidden" id="promo-edit-id"><button class="btn" onclick="savePromo()">Salvar</button><button class="btn btn-danger" id="promo-del-btn" style="margin-top:8px;display:none" onclick="deletePromo()">Excluir</button></div>';
+  d.onclick=function(e){if(e.target===d)closeMod("mod-promo")};
+  document.body.appendChild(d);
+}
+
+async function editPromo(id){
+  if(!document.getElementById("mod-promo"))injectPromoModal();
+  var r=await db.from("promotions").select("*").eq("id",id).single();if(!r.data)return;var p=r.data;
+  document.getElementById("promo-title").value=p.title||"";
+  document.getElementById("promo-desc").value=p.description||"";
+  document.getElementById("promo-discount").value=p.discount_pct||"";
+  document.getElementById("promo-edit-id").value=p.id;
+  document.getElementById("mod-promo-title").textContent="Editar Promo\u00e7\u00e3o";
+  document.getElementById("promo-del-btn").style.display="block";
+  openMod("mod-promo");
+}
+
+async function savePromo(){
+  var title=document.getElementById("promo-title").value.trim();
+  var desc=document.getElementById("promo-desc").value.trim();
+  var discount=parseInt(document.getElementById("promo-discount").value)||0;
+  if(!title){toast("T\u00edtulo obrigat\u00f3rio");return}
+  var editId=document.getElementById("promo-edit-id").value;
+  var obj={shop_id:S.shopId,title:title,description:desc,discount_pct:discount,active:true};
+  if(editId){await db.from("promotions").update(obj).eq("id",editId)}
+  else{await db.from("promotions").insert(obj)}
+  closeMod("mod-promo");toast(editId?"Atualizada!":"Promo\u00e7\u00e3o criada!");loadPromos();
+}
+
+async function deletePromo(){
+  var id=document.getElementById("promo-edit-id").value;if(!id)return;
+  if(!confirm("Excluir?"))return;
+  await db.from("promotions").delete().eq("id",id);closeMod("mod-promo");toast("Exclu\u00edda!");loadPromos();
+}
+
+// === CONFIG ===
+async function loadConfig(){
+  var r=await db.from("shops").select("*").eq("id",S.shopId).single();if(!r.data)return;var shop=r.data;
+  var el=document.getElementById("cfg-content");
+  el.innerHTML='<div class="card"><div class="mt">Dados do Sal\u00e3o</div><div class="fg"><label class="fl">Nome</label><input class="fi" id="cfg-name" value="'+(shop.name||"")+'"></div><div class="fg"><label class="fl">WhatsApp</label><input class="fi" id="cfg-whats" value="'+(shop.whatsapp||"")+'"></div><div class="fg"><label class="fl">Instagram</label><input class="fi" id="cfg-insta" value="'+(shop.instagram||"")+'"></div><div class="fg"><label class="fl">Chave PIX</label><input class="fi" id="cfg-pix" value="'+(shop.pix_key||"")+'"></div><div class="fg"><label class="fl">Endere\u00e7o</label><input class="fi" id="cfg-addr" value="'+(shop.address||"")+'"></div></div><div class="card"><div class="mt">Hor\u00e1rios</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div class="fg"><label class="fl">Abertura</label><input type="time" class="fi" id="cfg-open" value="'+(shop.opening_time||"09:00")+'"></div><div class="fg"><label class="fl">Fechamento</label><input type="time" class="fi" id="cfg-close" value="'+(shop.closing_time||"19:00")+'"></div><div class="fg"><label class="fl">Almo\u00e7o in\u00edcio</label><input type="time" class="fi" id="cfg-lunch1" value="'+(shop.lunch_start||"")+'"></div><div class="fg"><label class="fl">Almo\u00e7o fim</label><input type="time" class="fi" id="cfg-lunch2" value="'+(shop.lunch_end||"")+'"></div></div><div class="fg"><label class="fl">Intervalo (min)</label><input type="number" class="fi" id="cfg-slot" value="'+(shop.slot_duration||30)+'"></div></div><button class="btn" onclick="saveConfig()" style="margin:0 20px;width:calc(100% - 40px)">Salvar</button>';
+}
+
+async function saveConfig(){
+  var obj={name:document.getElementById("cfg-name").value.trim(),whatsapp:document.getElementById("cfg-whats").value.trim(),instagram:document.getElementById("cfg-insta").value.trim(),pix_key:document.getElementById("cfg-pix").value.trim(),address:document.getElementById("cfg-addr").value.trim(),opening_time:document.getElementById("cfg-open").value||"09:00",closing_time:document.getElementById("cfg-close").value||"19:00",lunch_start:document.getElementById("cfg-lunch1").value||null,lunch_end:document.getElementById("cfg-lunch2").value||null,slot_duration:parseInt(document.getElementById("cfg-slot").value)||30};
+  var r=await db.from("shops").update(obj).eq("id",S.shopId);
+  if(r.error)toast("Erro: "+r.error.message);else toast("Salvo!");
+}
+
+// === KEYBOARD ===
+document.addEventListener("keydown",function(e){
+  if(e.key==="Escape")document.querySelectorAll(".mov.open").forEach(function(m){m.classList.remove("open")});
+  if(e.key==="Enter"&&document.getElementById("login-page").classList.contains("active"))doLogin();
+});
+</script>
+</body>
+</html>
