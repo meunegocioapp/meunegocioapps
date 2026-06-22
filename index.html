@@ -2596,6 +2596,71 @@ if(typeof window.openCreateBarberUser==='undefined'){
 
 </script>
 <script src="pkg_booking.js?v=4"></script>
-<script src="manipro-features.js?v=3"></script>
+<script src="manipro-features.js?v=3">
+
+// === SET PASSWORD FLOW ===
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var setToken = params.get('set_password');
+  var setEmail = params.get('email');
+  if (setToken && setEmail) {
+    // Show set password UI
+    document.addEventListener('DOMContentLoaded', function(){
+      setTimeout(function(){
+        var container = document.querySelector('.container') || document.body;
+        var overlay = document.createElement('div');
+        overlay.id = 'set-pwd-overlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg,#1a1025);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+        overlay.innerHTML = '<div style="width:100%;max-width:400px;text-align:center">'
+          + '<div style="font-size:48px;margin-bottom:16px">\uD83D\uDC85</div>'
+          + '<h1 style="color:#9B59B6;font-size:24px;margin-bottom:8px">ManiPro</h1>'
+          + '<p style="color:#c9b8d9;font-size:13px;margin-bottom:30px">Crie sua senha para acessar o sistema</p>'
+          + '<div style="text-align:left;margin-bottom:14px"><label style="display:block;font-size:12px;color:#a08bb5;margin-bottom:6px;font-weight:600">E-mail</label><input id="sp-email" type="email" value="' + decodeURIComponent(setEmail) + '" readonly style="width:100%;background:#2e1d42;border:1.5px solid #3d2856;border-radius:10px;padding:12px 14px;color:#fff;font-size:14px;opacity:.7"></div>'
+          + '<div style="text-align:left;margin-bottom:14px"><label style="display:block;font-size:12px;color:#a08bb5;margin-bottom:6px;font-weight:600">Nova senha</label><input id="sp-pwd" type="password" placeholder="Min 6 caracteres" style="width:100%;background:#2e1d42;border:1.5px solid #3d2856;border-radius:10px;padding:12px 14px;color:#fff;font-size:14px"></div>'
+          + '<div style="text-align:left;margin-bottom:20px"><label style="display:block;font-size:12px;color:#a08bb5;margin-bottom:6px;font-weight:600">Confirmar senha</label><input id="sp-pwd2" type="password" placeholder="Repita a senha" style="width:100%;background:#2e1d42;border:1.5px solid #3d2856;border-radius:10px;padding:12px 14px;color:#fff;font-size:14px"></div>'
+          + '<button id="sp-btn" onclick="doSetPassword()" style="background:#9B59B6;color:#fff;border:none;border-radius:12px;padding:14px 24px;font-size:14px;font-weight:700;cursor:pointer;width:100%">Criar Senha</button>'
+          + '<p id="sp-err" style="color:#E74C3C;font-size:12px;margin-top:12px;display:none"></p>'
+          + '</div>';
+        document.body.appendChild(overlay);
+      }, 100);
+    });
+    window.doSetPassword = async function(){
+      var email = document.getElementById('sp-email').value;
+      var pwd = document.getElementById('sp-pwd').value;
+      var pwd2 = document.getElementById('sp-pwd2').value;
+      var errEl = document.getElementById('sp-err');
+      errEl.style.display = 'none';
+      if (!pwd || pwd.length < 6) { errEl.textContent = 'Senha deve ter no minimo 6 caracteres'; errEl.style.display = 'block'; return; }
+      if (pwd !== pwd2) { errEl.textContent = 'Senhas nao conferem'; errEl.style.display = 'block'; return; }
+      document.getElementById('sp-btn').textContent = 'Salvando...';
+      document.getElementById('sp-btn').disabled = true;
+      try {
+        // Sign in with temp password first, then update
+        // Actually use the admin endpoint to update password
+        var SB_URL = document.querySelector('script[src*="supabase"]') ? '' : '';
+        // Use the service to update password via admin-clientes
+        var r = await fetch('https://zheqdrblwlhvzxrdaifo.supabase.co/functions/v1/admin-clientes?action=update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, token: setToken, new_password: pwd })
+        });
+        var data = await r.json();
+        if (data.error) { errEl.textContent = data.error; errEl.style.display = 'block'; document.getElementById('sp-btn').textContent = 'Criar Senha'; document.getElementById('sp-btn').disabled = false; return; }
+        // Success - remove overlay, clean URL, show login
+        document.getElementById('set-pwd-overlay').remove();
+        window.history.replaceState({}, '', window.location.pathname);
+        if (typeof toast === 'function') toast('Senha criada! Faca login.');
+        else alert('Senha criada com sucesso! Faca login com seu email e nova senha.');
+      } catch(e) {
+        errEl.textContent = 'Erro: ' + e.message;
+        errEl.style.display = 'block';
+        document.getElementById('sp-btn').textContent = 'Criar Senha';
+        document.getElementById('sp-btn').disabled = false;
+      }
+    };
+  }
+})();
+
+</script>
 </body>
 </html>
