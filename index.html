@@ -772,7 +772,7 @@ html,body{overscroll-behavior-y:none;}
       <div class="fg"><label class="fl">Preco (R$)</label><input class="fi" id="pm-price" type="text" inputmode="decimal" placeholder="0"></div>
       <div class="fg"><label class="fl">Preco original</label><input class="fi" id="pm-orig" type="text" inputmode="decimal" placeholder="0"></div>
     </div>
-    <div class="fg"><label class="fl">Itens incluidos (um por linha)</label><textarea class="fi" id="pm-items" rows="3" style="resize:none" placeholder="Ex: 4 cortes por mes"></textarea></div>
+    <div class="fg"><label class="fl">Itens incluidos (um por linha)</label><textarea class="fi" id="pm-items" rows="3" style="resize:none" placeholder="Ex: 2 manicures + 1 pedicure"></textarea></div>
     <div class="fg"><label class="fl">Badge</label><select class="fi" id="pm-badge"><option value="">Sem badge</option><option value="POPULAR">POPULAR</option><option value="OFERTA">OFERTA</option><option value="NOVO">NOVO</option></select></div>
     <input type="hidden" id="pm-id">
     <button class="btn btn-gold" onclick="savePkg()" style="margin-bottom:10px">Salvar pacote</button>
@@ -1200,7 +1200,7 @@ async function loadPkgs(){
       <div class="pkg${p.badge?'  best':''}" onclick="_pkgClick(this)" data-pid="${p.id}">
         <div style="font-family:'Playfair Display',serif;font-size:18px;font-weight:700;margin-bottom:10px">${p.name}</div>
         <div style="display:flex;flex-direction:column;gap:4px;margin-bottom:12px">
-          ${(p.items||[]).map(i=>`<div style="font-size:12px;color:var(--txm);display:flex;gap:6px;align-items:center"><span style="color:var(--grn);font-weight:700">✓</span>${i}</div>`).join('')}
+          ${(Array.isArray(p.items)?p.items:(p.items||"").split("\n").filter(x=>x.trim())).map(i=>`<div style="font-size:12px;color:var(--txm);display:flex;gap:6px;align-items:center"><span style="color:var(--grn);font-weight:700">✓</span>${i}</div>`).join('')}
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--dk4)">
           <div>
@@ -2005,8 +2005,8 @@ async function saveOnboarding(){
     ]);
     // Criar pacotes padrao
     await db.from('packages').insert([
-      {name:'Mensal Corte',description:'4 cortes por mes com desconto',items:['4 cortes por mes','Agendamento prioritario','Desconto especial'],price:140,original_price:160,badge:'',active:true,shop_id:shop.id,frequencia:'Semanal',validade:'Mensal'},
-      {name:'Mensal Completo',description:'4 cortes + 4 barbas por mes',items:['4 cortes por mes','4 barbas por mes','Atendimento VIP','Desconto especial'],price:220,original_price:280,badge:'POPULAR',active:true,shop_id:shop.id,frequencia:'Quinzenal',validade:'Mensal'}
+      {name:'Mensal Corte',description:'2 manicures + 1 pedicure com desconto',items:['2 manicures + 1 pedicure','Agendamento prioritario','Desconto especial'],price:140,original_price:160,badge:'',active:true,shop_id:shop.id,frequencia:'Semanal',validade:'Mensal'},
+      {name:'Mensal Completo',description:'4 cortes + 4 barbas por mes',items:['2 manicures + 1 pedicure','4 barbas por mes','Atendimento VIP','Desconto especial'],price:220,original_price:280,badge:'POPULAR',active:true,shop_id:shop.id,frequencia:'Quinzenal',validade:'Mensal'}
     ]);
     // Criar promocoes padrao
     await db.from('promotions').insert([
