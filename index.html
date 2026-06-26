@@ -2402,9 +2402,9 @@ async function deleteCliente(uid){
     // 4. Checar sessão existente
     try{
       const{data:{session}}=await db.auth.getSession();
-      if(session&&window.location.hash==='#admin'){
-        await loadShop(session.user.id,true);
-        enterApp('admin');
+      if(session){
+        const _autoShop=await loadShop(session.user.id,true);
+        if(_autoShop){S.role='owner';enterApp('admin');if(typeof updateLoggedName==='function')updateLoggedName(session.user.email);try{var _st=localStorage.getItem('manipro_tab');if(_st)setTimeout(function(){showA(_st);},500);}catch(e){}}
       }
     }catch(e){}
   }catch(e){console.warn('Init error',e);}
