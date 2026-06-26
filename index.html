@@ -125,6 +125,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--dk);color:var(--tx);min-h
 .srl{font-size:13px;color:var(--txm)}.srv{font-size:14px;font-weight:600}
 ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--dk4);border-radius:4px}
 html,body{overscroll-behavior-y:none;}
+#svc-grid img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;pointer-events:auto;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
@@ -2785,6 +2786,11 @@ document.addEventListener('click', function(e){
 
 
 
+
+// Block context menu on service images (prevents browser long-press menu)
+document.addEventListener('contextmenu', function(e) {
+  if(e.target.tagName==='IMG'&&e.target.closest('#svc-grid')){e.preventDefault();}
+});
 // === LONG PRESS on service images to open lightbox ===
 (function(){
   var _lpTimer=null;
@@ -2792,13 +2798,14 @@ document.addEventListener('click', function(e){
   document.addEventListener('touchstart',function(e){
     var img=e.target;
     if(img.tagName==='IMG'&&img.closest('#svc-grid')&&img.src){
+      e.preventDefault();
       _lpTarget=img;
       _lpTimer=setTimeout(function(){
         openImgLightbox(_lpTarget.src);
         _lpTarget=null;
       },400);
     }
-  },{passive:true});
+  });
   document.addEventListener('touchend',function(){if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}},{passive:true});
   document.addEventListener('touchmove',function(){if(_lpTimer){clearTimeout(_lpTimer);_lpTimer=null;}},{passive:true});
   })();
