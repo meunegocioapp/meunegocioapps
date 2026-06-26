@@ -755,6 +755,8 @@ html,body{overscroll-behavior-y:none;}
       <div class="fg"><label class="fl">Duracao (min)</label><input class="fi" id="sm-dur" type="number" min="5"></div>
     </div>
     <div class="fg"><label class="fl">Categoria</label><select class="fi" id="sm-cat"><option>Serviços Básicos</option><option>Esmaltados</option><option>Unhas Artificiais &amp; Alongamentos</option><option>Nail Art &amp; Decoração</option><option>Tratamentos para Unhas</option><option>Pedicure Especializada</option><option>Pacotes &amp; Combos</option><option>Serviços Express</option><option>Extras &amp; Complementos</option><option>Outros</option></select></div>
+    <div class="fg"><label class="fl">Foto (opcional)</label><input type="file" accept="image/*" id="sm-img" class="fi" style="padding:8px" onchange="if(this.files[0]){const r=new FileReader();r.onload=e=>{const p=document.getElementById('sm-img-preview');p.src=e.target.result;p.style.display='block'};r.readAsDataURL(this.files[0])}"></div>
+    <img id="sm-img-preview" style="display:none;width:120px;height:120px;object-fit:cover;border-radius:10px;margin-bottom:10px">
     <input type="hidden" id="sm-id">
     <button class="btn btn-gold" onclick="saveSvc()" style="margin-bottom:10px">Salvar</button>
     <button class="btn btn-out" onclick="closeMod('mod-svc')">Cancelar</button>
@@ -774,6 +776,8 @@ html,body{overscroll-behavior-y:none;}
     </div>
     <div class="fg"><label class="fl">Itens incluidos (um por linha)</label><textarea class="fi" id="pm-items" rows="3" style="resize:none" placeholder="Descreva os itens incluidos"></textarea></div>
     <div class="fg"><label class="fl">Badge</label><select class="fi" id="pm-badge"><option value="">Sem badge</option><option value="POPULAR">POPULAR</option><option value="OFERTA">OFERTA</option><option value="NOVO">NOVO</option></select></div>
+    <div class="fg"><label class="fl">Foto (opcional)</label><input type="file" accept="image/*" id="pm-img" class="fi" style="padding:8px" onchange="if(this.files[0]){const r=new FileReader();r.onload=e=>{const p=document.getElementById('pm-img-preview');p.src=e.target.result;p.style.display='block'};r.readAsDataURL(this.files[0])}"></div>
+    <img id="pm-img-preview" style="display:none;width:120px;height:120px;object-fit:cover;border-radius:10px;margin-bottom:10px">
     <input type="hidden" id="pm-id">
     <button class="btn btn-gold" onclick="savePkg()" style="margin-bottom:10px">Salvar pacote</button>
     <button class="btn btn-out" onclick="closeMod('mod-pkg')">Cancelar</button>
@@ -1072,7 +1076,7 @@ function renderSvcGrid(){
     const key=s.id||('idx-'+i);
     const inCart=S.cart.some(c=>(c.id&&c.id===s.id)||(c._idx===i));
     return`<div onclick="toggleCart(${i})" style="background:var(--dk3);border:1.5px solid ${inCart?'var(--gold)':'var(--dk4)'};border-radius:var(--r);padding:14px;cursor:pointer;transition:all .2s;${inCart?'background:rgba(155,89,182,.08)':''}">
-      <div class="${catCls(s.category)}" style="margin-bottom:8px">${icLabel(s.category)}</div>
+      ${s.image_url?'<img src="'+s.image_url+'" style="width:60px;height:60px;object-fit:cover;border-radius:10px;margin-bottom:8px">':'<div class="'+catCls(s.category)+'" style="margin-bottom:8px">'+icLabel(s.category)+'</div>'}
       <div style="font-size:14px;font-weight:600;color:var(--tx)">${s.name}</div>
       <div style="font-size:16px;font-weight:700;color:var(--gold);margin-top:4px">${fmt(s.price)}</div>
       <div style="font-size:11px;color:var(--txm);margin-top:2px">${s.duration_minutes} min</div>
@@ -1926,6 +1930,39 @@ async function addBarber(){
 
 // Override saveSvc/savePkg to include shop_id
 const _origSaveSvc=saveSvc;
+
+// === IMAGE UPLOAD HELPERS ===
+async function compressImage(file, maxW=800, quality=0.8){
+  return new Promise((resolve,reject)=>{
+    const img=new Image();
+    img.onload=()=>{
+      let w=img.width,h=img.height;
+      if(w>maxW){h=Math.round(h*(maxW/w));w=maxW;}
+      if(h>maxW){w=Math.round(w*(maxW/h));h=maxW;}
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      const ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      canvas.toBlob(blob=>{
+        if(blob)resolve(blob);
+        else reject(new Error('Falha ao comprimir imagem'));
+      },'image/jpeg',quality);
+    };
+    img.onerror=()=>reject(new Error('Falha ao carregar imagem'));
+    img.src=URL.createObjectURL(file);
+  });
+}
+
+async function uploadServiceImage(file, serviceId){
+  const blob=await compressImage(file);
+  const filePath=S.shopId+'/'+serviceId+'.jpg';
+  const{error}=await db.storage.from('service-images').upload(filePath,blob,{contentType:'image/jpeg',upsert:true});
+  if(error){console.error('Upload error:',error);throw error;}
+  const{data}=db.storage.from('service-images').getPublicUrl(filePath);
+  return data.publicUrl;
+}
+// === END IMAGE UPLOAD HELPERS ===
+
 async function saveSvc(){
   // patch: inject shop_id before save
   const eid=document.getElementById('sm-id').value;
@@ -1935,9 +1972,25 @@ async function saveSvc(){
   const cat=document.getElementById('sm-cat').value;
   if(!name||!price||!dur){toast('Preencha todos os campos.','err');return;}
   const payload={name,price,duration_minutes:dur,category:cat,icon:icLabel(cat),shop_id:S.shopId};
-  let error;
-  if(eid){({error}=await db.from('services').update(payload).eq('id',eid));}
-  else{({error}=await db.from('services').insert({...payload,active:true}));}
+  // Image upload
+  const imgInput=document.getElementById('sm-img');
+  let error,resultData;
+  if(eid){
+    ({error}=await db.from('services').update(payload).eq('id',eid));
+    if(!error&&imgInput&&imgInput.files[0]){
+      try{const url=await uploadServiceImage(imgInput.files[0],eid);
+        await db.from('services').update({image_url:url}).eq('id',eid);
+      }catch(e){console.warn('Image upload failed:',e);}
+    }
+  } else{
+    const res=await db.from('services').insert({...payload,active:true}).select();
+    error=res.error;resultData=res.data;
+    if(!error&&resultData&&resultData[0]&&imgInput&&imgInput.files[0]){
+      try{const url=await uploadServiceImage(imgInput.files[0],resultData[0].id);
+        await db.from('services').update({image_url:url}).eq('id',resultData[0].id);
+      }catch(e){console.warn('Image upload failed:',e);}
+    }
+  }
   if(error){toast('Erro: '+error.message,'err');return;}
   toast('Serviço salvo!','ok');closeMod('mod-svc');loadAdmSvcs();loadSvcs();
 }
@@ -1954,8 +2007,24 @@ async function savePkg(){
   const valid=document.getElementById('pm-valid').value;
   const payload={name,price,original_price:orig?parseFloat(orig.replace(/[^0-9.,]/g,'').replace(',','.')):null,items,description:desc,badge:badge||null,frequencia:freq||null,validade:valid||null,active:true,shop_id:S.shopId};
   let error;
-  if(eid){({error}=await db.from('packages').update(payload).eq('id',eid));}
-  else{({error}=await db.from('packages').insert(payload));}
+  // Package image upload
+  const pkgImgInput=document.getElementById('pm-img');
+  if(eid){
+    ({error}=await db.from('packages').update(payload).eq('id',eid));
+    if(!error&&pkgImgInput&&pkgImgInput.files[0]){
+      try{const url=await uploadServiceImage(pkgImgInput.files[0],'pkg-'+eid);
+        await db.from('packages').update({image_url:url}).eq('id',eid);
+      }catch(e){console.warn('Pkg image upload failed:',e);}
+    }
+  } else{
+    const res=await db.from('packages').insert(payload).select();
+    error=res.error;
+    if(!error&&res.data&&res.data[0]&&pkgImgInput&&pkgImgInput.files[0]){
+      try{const url=await uploadServiceImage(pkgImgInput.files[0],'pkg-'+res.data[0].id);
+        await db.from('packages').update({image_url:url}).eq('id',res.data[0].id);
+      }catch(e){console.warn('Pkg image upload failed:',e);}
+    }
+  }
   if(error){toast('Erro: '+error.message,'err');return;}
   toast('Pacote salvo!','ok');closeMod('mod-pkg');loadAdmPkgs();
 }
@@ -2697,6 +2766,17 @@ if(typeof window.openCreateBarberUser==='undefined'){
   }
 })();
 
+
+// Reset image previews on modal close
+const _origResetSvcModal = typeof resetSvcModal === 'function' ? resetSvcModal : null;
+document.addEventListener('click', function(e){
+  if(e.target.classList.contains('mov')){
+    const si=document.getElementById('sm-img');if(si)si.value='';
+    const sp=document.getElementById('sm-img-preview');if(sp){sp.style.display='none';sp.src='';}
+    const pi=document.getElementById('pm-img');if(pi)pi.value='';
+    const pp=document.getElementById('pm-img-preview');if(pp){pp.style.display='none';pp.src='';}
+  }
+});
 </script>
 </body>
 </html>
