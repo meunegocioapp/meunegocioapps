@@ -1086,6 +1086,8 @@ function renderSvcGrid(){
 }
 
 function toggleCart(idx){
+  // Skip if click came from lightbox expand button
+  if(event&&event.target&&(event.target.classList.contains("img-expand-btn")||event.target.closest(".img-expand-btn"))){var _url=event.target.getAttribute("data-url")||event.target.closest(".img-expand-btn").getAttribute("data-url");if(_url)openImgLightbox(_url);return;}
   // idx é o índice do array S.svcs
   const svc=S.svcs[idx];if(!svc)return;
   const svcWithIdx={...svc,_idx:idx};
