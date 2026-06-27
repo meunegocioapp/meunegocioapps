@@ -1076,7 +1076,7 @@ function renderSvcGrid(){
     const key=s.id||('idx-'+i);
     const inCart=S.cart.some(c=>(c.id&&c.id===s.id)||(c._idx===i));
     return`<div onclick="toggleCart(${i})" style="background:var(--dk3);border:1.5px solid ${inCart?'var(--gold)':'var(--dk4)'};border-radius:var(--r);padding:14px;cursor:pointer;transition:all .2s;${inCart?'background:rgba(155,89,182,.08)':''}">
-      ${s.image_url?'<div style="position:relative;display:inline-block;margin-bottom:8px"><img src="'+s.image_url+'" style="width:60px;height:60px;object-fit:cover;border-radius:10px"><div class="img-expand-btn" data-url="'+s.image_url+'" style="position:absolute;bottom:2px;right:2px;background:rgba(155,89,182,.85);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;cursor:pointer;color:#fff">&#x26F6;</div></div>':'<div class="'+catCls(s.category)+'" style="margin-bottom:8px">'+icLabel(s.category)+'</div>'}
+      ${s.image_url?'<img src="'+s.image_url+'" style="width:60px;height:60px;object-fit:cover;border-radius:10px"><span onclick="event.stopPropagation();openImgLightbox(this.previousElementSibling.src)" style="display:block;font-size:9px;color:#9B59B6;margin-top:2px;margin-bottom:4px;cursor:pointer">ampliar</span>'':'<div class="'+catCls(s.category)+'" style="margin-bottom:8px">'+icLabel(s.category)+'</div>'}
       <div style="font-size:14px;font-weight:600;color:var(--tx)">${s.name}</div>
       <div style="font-size:16px;font-weight:700;color:var(--gold);margin-top:4px">${fmt(s.price)}</div>
       <div style="font-size:11px;color:var(--txm);margin-top:2px">${s.duration_minutes} min</div>
